@@ -114,7 +114,7 @@ export default function KioskoLayout() {
   };
 
   // Función para limpiar el PIN cuando se navega de vuelta
-  const handleNavigation =async () => {
+  const handleNavigation = async () => {
     // Validar que todos los datos están completos antes de navegar
     if (
       !canProceed ||
@@ -125,13 +125,13 @@ export default function KioskoLayout() {
       console.warn('Cannot proceed: data not ready or loading in progress');
       return;
     }
-    const response=await loginWorker({
+    const response = await loginWorker({
       workerId: selectedEmployee?.employeeId || '',
       branch: selectedBranch?.id || '',
-      nip: inputValue
+      nip: inputValue,
     });
 
-    if(!response){
+    if (!response) {
       setError('Login failed. Please check your PIN and try again.');
       return;
     }
@@ -148,6 +148,7 @@ export default function KioskoLayout() {
 
       // const branches = await fetchBranches();
       const branches = await fetchBranchAPI();
+      console.log('Fetched branches from API:', branches);
       setAvailableBranches(branches);
 
       // console.log('Branches loaded successfully:', branches.length);
@@ -165,6 +166,7 @@ export default function KioskoLayout() {
       setError(null);
 
       const employees = await fetchEmployeesAPI(branchId);
+      console.log(employees);
       setAvailableEmployees(employees);
 
       // console.log(`Employees loaded for branch ${branchId}:`, employees.length);
@@ -305,159 +307,131 @@ export default function KioskoLayout() {
   }, [availableEmployees]);
 
   return (
-    <SafeAreaView className="relative w-full flex-1 items-center justify-start gap-4">
-      {/* Overlay invisible para cerrar dropdowns cuando se hace clic fuera */}
+    <View className=" flex  w-full flex-1  flex-col items-center justify-start  gap-2 rounded-2xl bg-gray-50 p-4">
+      {/* Overlay to close dropdowns when clicking outside */}
       {openDropdown && (
         <Pressable
           onPress={closeAllDropdowns}
           className="absolute inset-0 z-30"
-          style={{
-            backgroundColor: 'transparent',
-          }}
+          style={{ backgroundColor: 'transparent' }}
         />
       )}
 
-      <Text className="text-postal-red rounded-3xl bg-gray-200 p-2 text-center text-4xl font-bold">
-        Time Clock
-      </Text>
-
-      <View className="flex flex-row items-center justify-center gap-4">
-        <House width={40} height={40} />
-        <View className="flex flex-col">
-          <Text className="text-xl font-bold text-zinc-600 md:text-4xl">
-            Welcome to the Time Clock
-          </Text>
-          <Text className="text-wrap text-sm text-gray-500 md:text-4xl">
-            {loadingStates.branches
-              ? 'Loading branches...'
-              : loadingStates.employees
-                ? 'Loading employees...'
-                : loadingStates.validation
-                  ? 'Validating data...'
-                  : 'Tap to choose the branch, employee and enter your PIN'}
-          </Text>
+      {/* Header */}
+      <View className="flex items-center justify-center  ">
+        <View className="flex flex-col items-center justify-center gap-2 ">
+          <House width={50} height={50} />
+          <View className="flex items-center justify-center ">
+            <Text className="text-xl font-bold  ">Welcome to the Time Clock</Text>
+            <Text className=" text-xs  ">
+              Tap to choose the branch, employee and enter your PIN
+            </Text>
+          </View>
         </View>
       </View>
 
-      {/* Mostrar error si existe */}
-      {error && (
-        <View className="mx-4 rounded-lg bg-red-100 p-4">
-          <Text className="text-center text-red-700">{error}</Text>
+      {/* Error Alert */}
+      {/* {error && (
+        <View className="mx-4 mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 shadow-sm md:mx-auto md:max-w-3xl">
+          <Text className="text-center font-medium text-rose-700">{error}</Text>
           <Button
-            className="mt-2 bg-red-500 p-2"
+            className="mt-3 rounded-xl bg-rose-600 p-3"
             onPress={() => {
               setError(null);
               loadBranches();
             }}>
-            <Text className="text-white">Retry</Text>
+            <Text className="text-center font-semibold text-white">Retry</Text>
           </Button>
         </View>
-      )}
+      )} */}
 
-      {/* Mostrar indicador de loading general */}
+      {/* Global Loading Indicator */}
       {(loadingStates.branches || loadingStates.validation) && (
-        <View className="flex-row items-center gap-2 rounded-lg bg-blue-100 p-4">
-          <ActivityIndicator size="small" color="#3b82f6" />
-          <Text className="text-blue-700">
+        <View className="mx-4 mt-4 flex-row items-center gap-3 rounded-2xl border border-red-500 bg-red-100 p-4 shadow-sm md:mx-auto md:max-w-3xl">
+          <ActivityIndicator size="small" color="#ea092b" />
+          <Text className="font-medium ">
             {loadingStates.branches ? 'Loading branches...' : 'Validating data...'}
           </Text>
         </View>
       )}
 
-      <View className="z-40 w-full flex-col  p-4">
-        {/* Componente de selección de sucursal */}
-        <View className="mb-4 w-full">
-          <Text className="p-1 text-center text-xl font-bold">Branch </Text>
-          <BranchList
-            selectedBranch={selectedBranch}
-            onSelectBranch={handleBranchSelect}
-            availableBranches={availableBranches}
-            placeholder="Select Branch"
-            isOpen={openDropdown === 'branch'}
-            onToggle={(isOpen) => setOpenDropdown(isOpen ? 'branch' : null)}
-            disabled={loadingStates.branches || !initializationComplete}
+      {/* Form Sections */}
+      <View className="flex w-full flex-col items-center justify-center gap-2">
+        {/* <BranchList
+          selectedBranch={selectedBranch}
+          onSelectBranch={handleBranchSelect}
+          availableBranches={availableBranches}
+          placeholder="Select Branch"
+          isOpen={openDropdown === 'branch'}
+          onToggle={(isOpen) => setOpenDropdown(isOpen ? 'branch' : null)}
+          disabled={loadingStates.branches || !initializationComplete}
+        /> */}
+
+        {/* <View className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:p-6">
+          <EmployeeSelect
+            selectedEmployee={selectedEmployee}
+            onSelectedEmployee={setSelectedEmployee}
+            availableEmployees={availableEmployees}
+            placeholder="Select Employee"
+            isOpen={openDropdown === 'employee'}
+            onToggle={(isOpen) => setOpenDropdown(isOpen ? 'employee' : null)}
+            disabled={!selectedBranch || loadingStates.employees || availableEmployees.length === 0}
           />
-        </View>
+        </View> */}
 
-        {/* Componente de selección de empleado */}
-        <View className="mb-4 w-full">
-          {loadingStates.employees ? (
-            <View className="flex-row items-center gap-2 rounded-lg bg-blue-50 p-4">
-              <ActivityIndicator size="small" color="#3b82f6" />
-              <Text className="text-blue-700">Loading employees...</Text>
-            </View>
-          ) : (
-            <View>
-                          <Text className="p-1 text-xl font-bold text-center">Employee</Text>
-
-            <EmployeeSelect
-              selectedEmployee={selectedEmployee}
-              onSelectedEmployee={setSelectedEmployee}
-              availableEmployees={availableEmployees}
-              placeholder="Select Employee"
-              isOpen={openDropdown === 'employee'}
-              onToggle={(isOpen) => setOpenDropdown(isOpen ? 'employee' : null)}
-              disabled={
-                !selectedBranch || loadingStates.employees || availableEmployees.length === 0
-              }
-            />
-            </View>
-          )}
-        </View>
-
-        {/* Campo de PIN del empleado */}
-        <View className="mb-4 w-full">
-          <Text className="p-1 text-xl font-bold">Employee PIN</Text>
+        {/* <View className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:p-6">
+          <Text className="mb-2 text-lg font-semibold text-zinc-800 md:text-xl">Employee PIN</Text>
           <Pressable onPress={openPinModal} disabled={!selectedEmployee}>
             <TextInput
               placeholder="Enter your Employee PIN"
               value={inputValue}
               readOnly
               editable={false}
-              className={`h-16 w-full items-center justify-center rounded-xl border text-center text-2xl ${
+              className={`h-14 w-full rounded-xl border text-center text-xl md:h-16 md:text-2xl ${
                 !selectedEmployee
-                  ? 'border-gray-200 bg-gray-100 text-gray-400'
-                  : 'border-gray-300 bg-white'
+                  ? 'border-zinc-200 bg-zinc-100 text-zinc-400'
+                  : 'border-zinc-300 bg-white text-zinc-800'
               }`}
             />
           </Pressable>
-        </View>
-      </View>
-      <View className=" z-0 w-full flex-row items-center justify-between rounded-3xl  p-4">
-        {/* <Button
-          className="flex w-2/6 flex-row items-center justify-center bg-red-600 p-8 shadow-xl"
-        >
-          <Text className="text-3xl text-gray-50">Exit</Text>
-        </Button> */}
-        <Button
-          className={`flex w-full flex-row items-center justify-center   ${
-            canProceed ? 'bg-red-500' : 'bg-gray-400'
-          }`}
-          disabled={!canProceed}
-          onPress={() => {
-            if (canProceed) {
-              handleNavigation();
-            }
-          }}>
-          <Text className="me-4 text-2xl text-gray-50">Proceed</Text>
-        </Button>
+        </View> */}
       </View>
 
-      {/* Modal para ingresar PIN */}
-      {showPinModal && (
+      {/* Bottom Action */}
+      {/* <View className="z-0 w-full px-4 pb-6 md:px-8">
+        <View className="mx-auto w-full max-w-4xl">
+          <Button
+            className={`rounded-2xl p-4 shadow-md md:p-5 ${
+              canProceed ? 'bg-red-500' : 'bg-zinc-300'
+            }`}
+            disabled={!canProceed}
+            onPress={() => {
+              if (canProceed) {
+                handleNavigation();
+              }
+            }}>
+            <Text className="text-center text-lg font-semibold text-white md:text-2xl">
+              Proceed
+            </Text>
+          </Button>
+        </View>
+      </View> */}
+
+      {/* PIN Modal */}
+      {/* {showPinModal && (
         <Modal
           visible={showPinModal}
           transparent={true}
           animationType="fade"
           onRequestClose={closePinModal}>
           <View
-            className="flex-1 items-center justify-center "
+            className="flex-1 items-center justify-center"
             style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-            <View className="w-[90%] max-w-xl rounded-2xl bg-white p-6 shadow-lg">
+            <View className="w-[92%] max-w-xl rounded-3xl bg-white p-6 shadow-2xl md:p-7">
               <View className="mb-4 flex-row items-center justify-between">
-                <Text className="text-2xl font-bold text-gray-800">Enter Employee PIN</Text>
+                <Text className="text-2xl font-bold text-zinc-900">Enter Employee PIN</Text>
                 <Pressable onPress={closePinModal}>
-                  <Text className="text-2xl text-gray-500">✕</Text>
+                  <Text className="text-2xl text-zinc-400">✕</Text>
                 </Pressable>
               </View>
 
@@ -465,13 +439,13 @@ export default function KioskoLayout() {
                 placeholder="Employee PIN"
                 value={tempInputValue}
                 readOnly
-                className={`mb-4 h-16 w-full items-center justify-center rounded-xl border text-center text-2xl ${
-                  errorWarning ? 'border-red-500 bg-red-50' : 'border-gray-300 bg-white'
+                className={`mb-4 h-14 w-full rounded-xl border text-center text-xl md:h-16 md:text-2xl ${
+                  errorWarning ? 'border-rose-500 bg-rose-50' : 'border-zinc-300 bg-white'
                 }`}
               />
 
               {errorWarning && (
-                <Text className="mb-4 text-center text-red-500">
+                <Text className="mb-2 text-center text-rose-600">
                   PIN must be at least 3 characters
                 </Text>
               )}
@@ -480,25 +454,11 @@ export default function KioskoLayout() {
                 <Keypad onButtonClick={handleInputClick} okButton={tempInputValue.length >= 3} />
               </View>
 
-              <View className="mt-4 flex-row gap-4">
-                {/* <Button className="flex-1 bg-gray-500 p-4" onPress={closePinModal}>
-                  <Text className="text-center text-lg text-white">Cancel</Text>
-                </Button> */}
-                {/* <Button
-                  className={`flex-1 p-4 ${
-                    tempInputValue.length >= 3 ? 'bg-green-500' : 'bg-gray-400'
-                  }`}
-                  disabled={tempInputValue.length < 3}
-                  onPress={() => handleInputClick('OK')}>
-                  <Text className="text-center text-lg text-white">Confirm</Text>
-                </Button> */}
-              </View>
+              <View className="mt-4 flex-row gap-4" />
             </View>
           </View>
         </Modal>
-      )}
-
-     
-    </SafeAreaView>
+      )} */}
+    </View>
   );
 }

@@ -1,24 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Pressable, FlatList, Modal } from 'react-native';
-import House from '~/assets/images/house.svg';
-import { ArrowLeft } from '~/lib/icons/ArrowLeft';
-import { UserCircle } from '../../lib/icons/UserCircle';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, Pressable, FlatList } from 'react-native';
 import { informacionSucursal, obtenerInformacionSucursal } from '~/lib/services/timeclockStorage';
 import { type BranchApi } from '../../lib/services/branchService';
 
 interface Branch {
   id: string;
   name: string;
-  icon?: React.ReactNode;
-}
-
-interface UserEmployee {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  position: string;
-  employeeId: string;
+  // Optional extras (rendered only if the API provides them)
+  subtitle?: string;
+  meta?: string;
+  addressFull?: string;
+  city?: string;
+  state?: string;
+  stats?: {
+    workers?: number;
+    mailboxes?: number;
+    physicalMailboxesCapacity?: number;
+  };
 }
 
 interface BranchSelectProps {
@@ -42,33 +40,44 @@ export default function BranchSelect({
 }: BranchSelectProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [employees, setEmployees] = useState<UserEmployee[]>([]);
-  const [loading, setLoading] = useState(false);
-  // Usar el estado controlado si se proporciona, sino usar el interno
-  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+  const [lastUsedBranchId, setLastUsedBranchId] = useState<string | null>(null);
 
+  // Controlled vs internal (unchanged)
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
   const toggleOpen = () => {
     const newState = !isOpen;
-    if (onToggle) {
-      onToggle(newState);
-    } else {
-      setInternalIsOpen(newState);
-    }
+    if (onToggle) onToggle(newState);
+    else setInternalIsOpen(newState);
   };
 
-  // Convertir BranchApi a Branch con iconos
+  // Normalize API → Branch (tolerates either sucursalId or id; pulls optional fields when present)
   useEffect(() => {
     if (availableBranches.length > 0) {
-      const branchesWithIcons: Branch[] = availableBranches.map((branchApi) => ({
-        id: branchApi.sucursalId,
-        name: branchApi.name,
-        icon: <House width={20} height={20} />,
+      const mapped: Branch[] = (availableBranches as any[]).map((b) => ({
+        id: b.sucursalId ?? b.id,
+        name: b.name ?? 'Unnamed Branch',
+        subtitle:
+          b.subtitle ??
+          ([b.address?.city, b.address?.state].filter(Boolean).join(', ') || undefined),
+        meta: b.meta,
+        addressFull: b.address?.full,
+        city: b.address?.city,
+        state: b.address?.state,
+        stats: b.stats
+          ? {
+              workers: b.stats.workers,
+              mailboxes: b.stats.mailboxes,
+              physicalMailboxesCapacity: b.stats.physicalMailboxesCapacity,
+            }
+          : undefined,
       }));
-      setBranches(branchesWithIcons);
+      setBranches(mapped);
+    } else {
+      setBranches([]);
     }
   }, [availableBranches]);
 
-  // Cargar la sucursal guardada después de cargar las sucursales disponibles
+  // Load stored branch after branches are present (unchanged)
   useEffect(() => {
     if (branches.length > 0 && !selectedBranch) {
       loadStoredBranch();
@@ -79,120 +88,158 @@ export default function BranchSelect({
     try {
       const storedBranch = await obtenerInformacionSucursal();
       if (storedBranch) {
-        // Buscar la sucursal completa en la lista usando el ID guardado
+        setLastUsedBranchId(storedBranch.id);
         const fullBranch = getBranchById(storedBranch.id);
-        if (fullBranch && onSelectBranch) {
-          onSelectBranch(fullBranch);
-        }
+        if (fullBranch && onSelectBranch) onSelectBranch(fullBranch);
       }
     } catch (error) {
       console.error('Error loading stored branch:', error);
     }
   };
 
-  const fetchBranches = async () => {
-    // Esta función ya no es necesaria ya que recibimos las branches como props
-    // Se mantiene por compatibilidad pero no hace nada
-    return;
-  };
-
-  // Función utilitaria para obtener la sucursal completa por ID
-  const getBranchById = (id: string): Branch | null => {
-    return branches.find((branch) => branch.id === id) || null;
-  };
+  const getBranchById = (id: string): Branch | null =>
+    branches.find((branch) => branch.id === id) || null;
 
   const handleSelectBranch = (branch: Branch) => {
     onSelectBranch(branch);
-    informacionSucursal(branch); // Guardar solo los datos serializables de la sucursal en el almacenamiento local
-    if (onToggle) {
-      onToggle(false);
-    } else {
-      setInternalIsOpen(false);
-    }
+    informacionSucursal(branch);
+    if (onToggle) onToggle(false);
+    else setInternalIsOpen(false);
   };
 
-  // const renderBranchItemCard = ({ item }: { item: Branch }) => (
-  //   <Pressable
-  //     style={{ marginHorizontal: 1, marginBottom: 12 }}
-  //     className={`w-1/3 items-center justify-center rounded-xl bg-white p-4 shadow-md active:scale-95 ${
-  //       selectedBranch?.id === item.id ? 'bg-blue-300' : ''
-  //     }`}
-  //     onPress={() => {
-  //       handleSelectBranch(item);
-  //       // console.log('Selected branch:', item);
-  //     }}>
-  //     <View className="relative flex w-full flex-col items-center justify-center">
-  //       {/* Icon Section */}
-  //       <View className="mb-4 mt-4">{item.icon || <House width={80} height={80} />}</View>
+  const getInitials = (name: string) =>
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() ?? '')
+      .join('');
 
-  //       {/* Branch Info */}
-  //       <View className="mb-4 flex w-full flex-col items-center justify-center gap-2">
-  //         <View className="flex flex-col items-center justify-center">
-  //           <Text className="text-center text-2xl font-bold">{item.name}</Text>
-  //         </View>
-  //       </View>
+  // Stable pastel color per branch (for the avatar)
+  const colorFromId = (id: string) => {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0;
+    const hue = Math.abs(hash) % 360;
+    return `hsl(${hue}, 70%, 90%)`;
+  };
 
-  //       {/* Branch ID at top */}
-  //       <View className="absolute top-2 flex flex-col items-center justify-center">
-  //         <View className="flex flex-col items-center justify-center">
-  //           <Text className="text-center text-xl font-bold">{item.id}</Text>
-  //           <Text className="text-center text-sm text-gray-500">Branch ID</Text>
-  //         </View>
-  //       </View>
-
-  //       {/* Selection indicator */}
-  //       {selectedBranch?.id === item.id && (
-  //         <View className="absolute right-2 top-2">
-  //           <View className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500">
-  //             <Text className="text-xs font-bold text-white">✓</Text>
-  //           </View>
-  //         </View>
-  //       )}
-  //     </View>
-  //   </Pressable>
-  // );
-
-  const renderBranchItem = ({ item }: { item: Branch }) => (
-    <Pressable
-      onPress={() => handleSelectBranch(item)}
-      className={`m-2 flex flex-col justify-center items-center  h-40 rounded-2xl border-b border-gray-200 p-4 ${
-        selectedBranch?.id === item.id ? 'bg-blue-50' : 'bg-gray-100'
-      }`}
-      style={{
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <View style={{ alignItems: 'center', justifyContent: 'center', flex: 1, width: '100%' }}>
-        <View className="mb-4 mt-4">{item.icon || <House width={80} height={80} />}</View>
-        <Text
-          className={`flex-1 text-lg ${
-            selectedBranch?.id === item.id ? 'font-semibold text-blue-600' : 'text-gray-700'
-          }`}
-          style={{ textAlign: 'center' }}
-        >
-          {item.name}
-        </Text>
-        {selectedBranch?.id === item.id && (
-          <View className="p-1 rounded-full bg-blue-500" style={{ alignSelf: 'center' }}>
-            <Text className="text-xs font-bold text-white">SELECTED</Text>
-          </View>
-        )}
-      </View>
-    </Pressable>
+  const Chip = ({ label, tone = 'default' }: { label: string; tone?: 'default' | 'muted' }) => (
+    <View
+      className={
+        tone === 'muted'
+          ? 'rounded-full bg-zinc-100 px-2 py-0.5'
+          : 'rounded-full bg-red-600 px-2 py-0.5'
+      }>
+      <Text
+        className={
+          tone === 'muted'
+            ? 'text-[10px] font-semibold text-zinc-700'
+            : 'text-[10px] font-semibold text-white'
+        }>
+        {label}
+      </Text>
+    </View>
   );
 
+  const CARD_WIDTH = 256; // w-64
+
+  const CARD_GAP = 8; // space between the two cards in a row
+  const ROW_MARGIN = 8; // margin between rows (pages)
+  const PAGE_WIDTH = CARD_WIDTH * 2 + CARD_GAP; // exact width of each horizontally-snapped item
+  const SNAP_INTERVAL = PAGE_WIDTH + ROW_MARGIN * 2;
+
+  const BranchCard = ({ item }: { item: Branch }) => {
+    const selected = selectedBranch?.id === item.id;
+    const initials = getInitials(item.name);
+    const avatarBg = colorFromId(item.id);
+
+    return (
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => handleSelectBranch(item)}
+        disabled={disabled}
+        android_ripple={{ color: '#e5e7eb' }}
+        className={` w-64 gap-2 rounded-2xl border p-4 shadow-sm
+        ${selected ? 'border-red-500 bg-red-50' : 'border-zinc-200 bg-white'}
+        ${disabled ? 'opacity-60' : ''}
+      `}
+        style={{ justifyContent: 'space-between' }}>
+        {/* Header row */}
+        <View className="flex-row items-center gap-2">
+          <View
+            className="h-12 w-12 items-center justify-center rounded-full"
+            style={{ backgroundColor: avatarBg }}>
+            <Text className="text-base font-bold text-zinc-700">{initials}</Text>
+          </View>
+          <View className="flex-1">
+            <Text numberOfLines={1} className="text-base font-semibold text-zinc-900">
+              {item.name}
+            </Text>
+            <Text numberOfLines={1} className="text-xs text-zinc-500">
+              {item.subtitle || `ID: ${item.id}`}
+            </Text>
+          </View>
+          {selected && <Chip label="Selected" />}
+          {!selected && lastUsedBranchId === item.id && <Chip label="Last used" tone="muted" />}
+        </View>
+
+        {/* Middle: address/meta (if present) */}
+        {!!(item.addressFull || item.meta) && (
+          <View>
+            {item.addressFull ? (
+              <Text numberOfLines={1} className="text-xs text-zinc-500">
+                {item.addressFull}
+              </Text>
+            ) : null}
+          </View>
+        )}
+      </Pressable>
+    );
+  };
+  const rows = React.useMemo(() => {
+    const out: Branch[][] = [];
+    for (let i = 0; i < branches.length; i += 2) {
+      out.push(branches.slice(i, i + 2)); // [b0,b1], [b2,b3], ...
+    }
+    return out;
+  }, [branches]);
+
   return (
-    <View className="w-full shadow-inner rounded-lg border border-gray-300 bg-white ">
-    <FlatList
-      data={branches}
-      renderItem={renderBranchItem}
-      keyExtractor={(item) => item.id}
-      className=""
-      
-      horizontal={true}
-      
-    />
+    <View className="shadow-inner w-full rounded-lg border border-zinc-200 bg-white">
+      <FlatList
+        data={rows}
+        keyExtractor={(_, idx) => `row-${idx}`}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        snapToAlignment="start"
+        snapToInterval={SNAP_INTERVAL} // snap one “pair” at a time
+        contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8 }}
+        renderItem={({ item: pair }) => (
+          <View
+            style={{
+              width: PAGE_WIDTH, // fixed width so snapping is perfect
+              marginHorizontal: ROW_MARGIN, // gap between rows/pages
+              flexDirection: 'row',
+              columnGap: CARD_GAP, // space between the two cards
+            }}>
+            {/* First card */}
+            <BranchCard item={pair[0]} />
+
+            {/* Second card or invisible spacer to keep width consistent */}
+            {pair[1] ? (
+              <BranchCard item={pair[1]} />
+            ) : (
+              <View style={{ width: CARD_WIDTH, opacity: 0 }} />
+            )}
+          </View>
+        )}
+        ListEmptyComponent={
+          <View className="w-full items-center justify-center py-10">
+            <Text className="text-sm text-zinc-500">{placeholder}</Text>
+          </View>
+        }
+      />
     </View>
   );
 }

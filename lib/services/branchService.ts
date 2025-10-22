@@ -6,7 +6,7 @@ import Constants from 'expo-constants';
 
 const API_KEY = Constants.expoConfig?.extra?.API_KEY;
 
-const API_URL = 'http://192.168.1.227:4006/timeclock_mobile'; // Replace with actual API URL
+const API_URL = 'http://192.168.1.129:4500/timeclock_mobile'; // Replace with actual API URL
 // const API_URL = 'https://postalhub-postages.vercel.app/api/timeclock';
 
 export interface Branch {
@@ -163,7 +163,7 @@ export const fetchBranchAPI = async (): Promise<BranchApi[]> => {
 
     // Respuesta de la API viene con sucusarles activas ya filtradas no es necesario filtrar
     const activeBranches = data;
-
+    console.log('Branches fetched successfully:', activeBranches);
     // console.log('Branches fetched successfully:', activeBranches);
     return activeBranches;
   } catch (error) {
@@ -188,7 +188,7 @@ export const fetchEmployeesAPI = async (branchId: string): Promise<EmployeeApi[]
     }
 
     const data = await response.json();
-    // console.log('Employees fetched from API:', data);
+    console.log('Employees fetched from API:', data);
 
     // Respuesta de la API viene con empleados activos ya filtrados no es necesario filtrar
     const activeEmployees = data;

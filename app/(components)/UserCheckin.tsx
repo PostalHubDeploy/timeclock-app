@@ -164,7 +164,9 @@ export default function UserCheckin() {
   }, [showMessage]);
 
   // Función para envolver handlers de botones y reiniciar timer (soporta async)
-  function withInactivityReset<T extends any[]>(fn: (...args: T) => Promise<void>): (...args: T) => Promise<void> {
+  function withInactivityReset<T extends any[]>(
+    fn: (...args: T) => Promise<void>
+  ): (...args: T) => Promise<void> {
     return async (...args: T) => {
       if (!showMessage) resetInactivityTimer();
       await fn(...args);
@@ -210,7 +212,7 @@ export default function UserCheckin() {
   }, []);
 
   // Timer para cuenta regresiva de timeout
- 
+
   // Cargar datos guardados del empleado y sucursal
   const loadStoredData = async () => {
     try {
@@ -597,7 +599,7 @@ export default function UserCheckin() {
       {dayTimeclock && (
         <View className="mx-4 rounded-lg bg-gray-100 p-4">
           <Text className="mb-2 text-center text-sm font-semibold text-gray-800">
-            Today's Timeclock
+            Today&apos;s Timeclock
             {allDaySessions.length > 1 && (
               <Text className="text-xs text-green-600"> • {allDaySessions.length} sessions</Text>
             )}

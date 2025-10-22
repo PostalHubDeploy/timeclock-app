@@ -10,12 +10,7 @@ import LogoNegative from '~/assets/images/postalhubnegativelogo.svg';
 import { useWindowDimensions, View, Text } from 'react-native';
 import Datetime from './(components)/Datetime';
 import Toast from 'react-native-toast-message';
-import {
-  SafeAreaProvider,
-  SafeAreaView,
-  Edge,
-} from 'react-native-safe-area-context';
-
+import { SafeAreaProvider, SafeAreaView, Edge } from 'react-native-safe-area-context';
 
 const LIGHT_THEME: Theme = {
   ...DefaultTheme,
@@ -56,17 +51,21 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
       <SafeAreaProvider>
-        <StatusBar style={isDarkColorScheme ? 'light' : 'dark'} />
-        <ScrollView className="w-full bg-red-500 mb-12" style={{ flex: 1 }} contentContainerStyle={{ alignItems: 'center' }}>
-          <Datetime />
-          <View className="flex h-full  w-[97%] flex-col items-center justify-center gap-8 rounded-[40px] bg-gray-50 pt-8">
-            <Slot />
-          </View>
-        </ScrollView>
-        <Toast 
-          position='top'
-          topOffset={60}
-        /> 
+        <SafeAreaView className="flex-1 bg-[#ea092b]">
+          <StatusBar style={isDarkColorScheme ? 'light' : 'dark'} />
+
+          <ScrollView
+            className="flex-1"
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled">
+            <Datetime />
+            <View className="w-full flex-1 px-4">
+              <Slot />
+            </View>
+          </ScrollView>
+
+          <Toast position="top" topOffset={60} />
+        </SafeAreaView>
       </SafeAreaProvider>
     </ThemeProvider>
   );
