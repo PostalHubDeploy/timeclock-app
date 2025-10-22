@@ -1,0 +1,35 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": "1",
+      "name": "San Ysidro",
+      "address": "123 San Ysidro Blvd, San Diego, CA",
+      "active": true
+    },
+    {
+      "id": "2", 
+      "name": "Americas",
+      "address": "456 Americas Ave, San Diego, CA",
+      "active": true
+    },
+    {
+      "id": "3",
+      "name": "Downtown",
+      "address": "789 Downtown St, San Diego, CA", 
+      "active": true
+    },
+    {
+      "id": "4",
+      "name": "Chula Vista",
+      "address": "321 Chula Vista Rd, Chula Vista, CA",
+      "active": true
+    },
+    {
+      "id": "5",
+      "name": "Tijuana Centro",
+      "address": "654 Centro Ave, Tijuana, BC",
+      "active": false
+    }
+  ]
+}

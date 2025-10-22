@@ -1,0 +1,103 @@
+{
+  "success": true,
+  "data": {
+    "1": [
+      {
+        "id": "101",
+        "firstName": "Christian",
+        "lastName": "Mendoza",
+        "email": "christian.mendoza@postalhub.com",
+        "position": "Manager",
+        "employeeId": "EMP001",
+        "branchId": "1",
+        "active": true
+      },
+      {
+        "id": "102", 
+        "firstName": "Maria",
+        "lastName": "Rodriguez",
+        "email": "maria.rodriguez@postalhub.com",
+        "position": "Operator",
+        "employeeId": "EMP002",
+        "branchId": "1",
+        "active": true
+      },
+      {
+        "id": "103",
+        "firstName": "Carlos",
+        "lastName": "Gonzalez", 
+        "email": "carlos.gonzalez@postalhub.com",
+        "position": "Supervisor",
+        "employeeId": "EMP003",
+        "branchId": "1",
+        "active": true
+      }
+    ],
+    "2": [
+      {
+        "id": "201",
+        "firstName": "Samuel",
+        "lastName": "Hiram",
+        "email": "samuel.hiram@postalhub.com",
+        "position": "Manager",
+        "employeeId": "EMP004",
+        "branchId": "2",
+        "active": true
+      },
+      {
+        "id": "202",
+        "firstName": "Ana",
+        "lastName": "Lopez",
+        "email": "ana.lopez@postalhub.com", 
+        "position": "Operator",
+        "employeeId": "EMP005",
+        "branchId": "2",
+        "active": true
+      }
+    ],
+    "3": [
+      {
+        "id": "301",
+        "firstName": "Alain",
+        "lastName": "Dupont",
+        "email": "alain.dupont@postalhub.com",
+        "position": "Supervisor",
+        "employeeId": "EMP006",
+        "branchId": "3",
+        "active": true
+      },
+      {
+        "id": "302",
+        "firstName": "Sofia",
+        "lastName": "Martinez",
+        "email": "sofia.martinez@postalhub.com",
+        "position": "Operator", 
+        "employeeId": "EMP007",
+        "branchId": "3",
+        "active": true
+      }
+    ],
+    "4": [
+      {
+        "id": "401",
+        "firstName": "Javier",
+        "lastName": "Gonzalez",
+        "email": "javier.gonzalez@postalhub.com",
+        "position": "Manager",
+        "employeeId": "EMP008",
+        "branchId": "4",
+        "active": true
+      },
+      {
+        "id": "402",
+        "firstName": "Isabella",
+        "lastName": "Torres",
+        "email": "isabella.torres@postalhub.com",
+        "position": "Operator",
+        "employeeId": "EMP009", 
+        "branchId": "4",
+        "active": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Postalhub Timeclock",
+    "slug": "postalhub-timeclock",
+    "version": "1.0.0",
+    "scheme": "postalhub-timeclock",
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.cmendoza.PHTimeclock"
+    },
+    "extra": {
+      "API_KEY": "22f8969ffaf07d452574c5bd7b53ad7c",
+      "router": {},
+      "eas": {
+        "projectId": "2be84621-ad26-4be3-9f7f-c107a0316436"
+      }
+    }
+  }
+}

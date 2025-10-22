@@ -1,0 +1,52 @@
+{
+  "success": true,
+  "data": {
+    "employee": {
+      "id": "101",
+      "firstName": "Christian",
+      "lastName": "Mendoza",
+      "email": "christian.mendoza@postalhub.com",
+      "position": "Manager",
+      "employeeId": "EMP001",
+      "branchId": "1",
+      "branchName": "San Ysidro",
+      "active": true,
+      "currentStatus": "checked_out",
+      "lastAction": {
+        "type": "check_out",
+        "timestamp": "2025-08-05T14:30:00Z",
+        "location": "San Ysidro"
+      }
+    },
+    "availableActions": [
+      {
+        "id": "check_in",
+        "label": "Check In",
+        "description": "Start your work shift",
+        "icon": "clock-in",
+        "enabled": true
+      },
+      {
+        "id": "break_start",
+        "label": "Start Break",
+        "description": "Begin your break period",
+        "icon": "coffee",
+        "enabled": false
+      },
+      {
+        "id": "break_end",
+        "label": "End Break", 
+        "description": "Return from break",
+        "icon": "clock-arrow-up",
+        "enabled": false
+      },
+      {
+        "id": "check_out",
+        "label": "Check Out",
+        "description": "End your work shift",
+        "icon": "clock-out",
+        "enabled": false
+      }
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "message": "Time clock action recorded successfully",
+  "data": {
+    "actionId": "tcr_20250805_143015_001",
+    "employeeId": "101",
+    "branchId": "1",
+    "actionType": "check_in",
+    "timestamp": "2025-08-05T14:30:15Z",
+    "location": "San Ysidro",
+    "coordinates": {
+      "latitude": 32.5545,
+      "longitude": -117.0323
+    },
+    "deviceInfo": {
+      "kioskId": "KIOSK_SY_001",
+      "ipAddress": "192.168.1.100"
+    },
+    "notes": "Automatic check-in via kiosk"
+  }
+}
