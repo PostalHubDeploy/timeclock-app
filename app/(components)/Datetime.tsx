@@ -19,7 +19,7 @@ export default function Datetime() {
       <View className="w-full flex-row items-stretch justify-between p-4">
         {/* Left: Date */}
         <View className=" justify-end">
-          <Text className="text-sm text-gray-50 md:text-base">
+          <Text className="text-3xl text-gray-50 md:text-base">
             {new Date().toLocaleDateString('en-US')}
           </Text>
         </View>
@@ -31,7 +31,7 @@ export default function Datetime() {
 
         {/* Right: Time */}
         <View className=" items-end justify-end">
-          <Text className="text-sm text-gray-50 md:text-4xl">
+          <Text className="text-3xl text-gray-50 md:text-4xl">
             {currentTime.toLocaleTimeString('en-US')}
           </Text>
         </View>

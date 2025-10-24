@@ -6,7 +6,6 @@ import { Button } from '~/components/ui/button';
 import BranchSelect from '~/app/(components)/BranchSelect';
 import { router } from 'expo-router';
 import EmployeeSelect from './EmployeeSelect';
-import { Keypad } from './Keypad';
 import { obtenerInformacionEmpleado } from '../../lib/services/timeclockStorage';
 import {
   obtenerInformacionSucursal,
@@ -29,6 +28,7 @@ import {
 } from '../../lib/services/branchService';
 import BranchList from './BranchList';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Keypad from './Keypad';
 
 interface Branch {
   id: string;
@@ -54,6 +54,33 @@ interface LoadingStates {
   validation: boolean;
 }
 
+export function PinDots({
+  value,
+  length = 4,
+  error = false,
+}: {
+  value: string;
+  length?: number;
+  error?: boolean;
+}) {
+  const chars = value.split('');
+  return (
+    <View className="flex-row items-center justify-center gap-2">
+      {Array.from({ length }).map((_, i) => {
+        const filled = !!chars[i];
+        return (
+          <View
+            key={i}
+            className={`h-16 w-16 items-center justify-center rounded-xl border
+              ${error ? 'border-rose-500 bg-rose-50' : 'border-zinc-300 bg-white'}`}>
+            <Text className="text-7xl text-gray-700">{filled ? '•' : ' '}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 export default function KioskoLayout() {
   const { width } = useWindowDimensions();
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
@@ -74,30 +101,63 @@ export default function KioskoLayout() {
   const [availableEmployees, setAvailableEmployees] = useState<EmployeeApi[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [initializationComplete, setInitializationComplete] = useState(false);
+  const [pinSubmitting, setPinSubmitting] = useState(false);
 
   const closeAllDropdowns = () => {
     setOpenDropdown(null);
   };
-
-  const handleInputClick = (button: string) => {
-    // Dismiss error if active
+  const handleEmployeePicked = (emp: UserEmployee) => {
+    setSelectedEmployee(emp);
+    setInputValue(''); // hard reset stored PIN
+    setTempInputValue(''); // modal input starts empty
+    setErrorWarning(false);
+    setShowPinModal(true); // open keypad immediately
+    closeAllDropdowns?.();
+  };
+  const handleInputClick = async (button: string) => {
     if (errorWarning) setErrorWarning(false);
 
     if (button === 'Delete') {
       setTempInputValue((prev) => prev.slice(0, -1));
-    } else if (button === 'OK') {
-      // Validar que tenga al menos 3 caracteres
-      if (tempInputValue.length >= 3) {
-        setInputValue(tempInputValue);
-        setShowPinModal(false);
-        setTempInputValue('');
-        // console.log('Employee PIN entered:', tempInputValue);
-      } else {
-        setErrorWarning(true);
-      }
-    } else {
-      setTempInputValue((prev) => (prev.length < 15 ? prev + button : prev));
+      return;
     }
+
+    if (button === 'OK') {
+      // Guard: need 4 digits + selections + not already submitting
+      if (tempInputValue.length !== 4 || !selectedEmployee || !selectedBranch || pinSubmitting) {
+        return;
+      }
+
+      try {
+        setPinSubmitting(true);
+
+        // Validate PIN against your API
+        const ok = await loginWorker({
+          workerId: selectedEmployee.employeeId,
+          branch: selectedBranch.id,
+          nip: tempInputValue,
+        });
+
+        if (ok) {
+          // success → close modal and go to check-in
+          setInputValue(''); // don’t persist PIN
+          setTempInputValue('');
+          setShowPinModal(false);
+          router.push('/usercheckin');
+        } else {
+          // bad PIN → show inline error, keep modal open
+          setErrorWarning(true);
+        }
+      } catch (e) {
+        setErrorWarning(true);
+      } finally {
+        setPinSubmitting(false);
+      }
+      return;
+    }
+
+    // Digits
+    setTempInputValue((prev) => (prev.length < 4 ? prev + button : prev));
   };
 
   const openPinModal = () => {
@@ -166,7 +226,7 @@ export default function KioskoLayout() {
       setError(null);
 
       const employees = await fetchEmployeesAPI(branchId);
-      console.log(employees);
+      console.log('employees', employees);
       setAvailableEmployees(employees);
 
       // console.log(`Employees loaded for branch ${branchId}:`, employees.length);
@@ -316,7 +376,6 @@ export default function KioskoLayout() {
           style={{ backgroundColor: 'transparent' }}
         />
       )}
-
       {/* Header */}
       <View className="flex items-center justify-center  ">
         <View className="flex flex-col items-center justify-center gap-2 ">
@@ -329,7 +388,6 @@ export default function KioskoLayout() {
           </View>
         </View>
       </View>
-
       {/* Error Alert */}
       {/* {error && (
         <View className="mx-4 mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 shadow-sm md:mx-auto md:max-w-3xl">
@@ -344,7 +402,6 @@ export default function KioskoLayout() {
           </Button>
         </View>
       )} */}
-
       {/* Global Loading Indicator */}
       {(loadingStates.branches || loadingStates.validation) && (
         <View className="mx-4 mt-4 flex-row items-center gap-3 rounded-2xl border border-red-500 bg-red-100 p-4 shadow-sm md:mx-auto md:max-w-3xl">
@@ -354,10 +411,9 @@ export default function KioskoLayout() {
           </Text>
         </View>
       )}
-
       {/* Form Sections */}
       <View className="flex w-full flex-col items-center justify-center gap-2">
-        {/* <BranchList
+        <BranchList
           selectedBranch={selectedBranch}
           onSelectBranch={handleBranchSelect}
           availableBranches={availableBranches}
@@ -365,19 +421,19 @@ export default function KioskoLayout() {
           isOpen={openDropdown === 'branch'}
           onToggle={(isOpen) => setOpenDropdown(isOpen ? 'branch' : null)}
           disabled={loadingStates.branches || !initializationComplete}
-        /> */}
+        />
 
-        {/* <View className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:p-6">
+        <View className="flex w-full flex-col items-center justify-center gap-2">
           <EmployeeSelect
             selectedEmployee={selectedEmployee}
-            onSelectedEmployee={setSelectedEmployee}
+            onSelectedEmployee={handleEmployeePicked} // <-- was setSelectedEmployee
             availableEmployees={availableEmployees}
             placeholder="Select Employee"
             isOpen={openDropdown === 'employee'}
             onToggle={(isOpen) => setOpenDropdown(isOpen ? 'employee' : null)}
             disabled={!selectedBranch || loadingStates.employees || availableEmployees.length === 0}
           />
-        </View> */}
+        </View>
 
         {/* <View className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm md:p-6">
           <Text className="mb-2 text-lg font-semibold text-zinc-800 md:text-xl">Employee PIN</Text>
@@ -396,7 +452,6 @@ export default function KioskoLayout() {
           </Pressable>
         </View> */}
       </View>
-
       {/* Bottom Action */}
       {/* <View className="z-0 w-full px-4 pb-6 md:px-8">
         <View className="mx-auto w-full max-w-4xl">
@@ -416,49 +471,58 @@ export default function KioskoLayout() {
           </Button>
         </View>
       </View> */}
-
-      {/* PIN Modal */}
-      {/* {showPinModal && (
-        <Modal
-          visible={showPinModal}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={closePinModal}>
-          <View
-            className="flex-1 items-center justify-center"
-            style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-            <View className="w-[92%] max-w-xl rounded-3xl bg-white p-6 shadow-2xl md:p-7">
-              <View className="mb-4 flex-row items-center justify-between">
-                <Text className="text-2xl font-bold text-zinc-900">Enter Employee PIN</Text>
-                <Pressable onPress={closePinModal}>
-                  <Text className="text-2xl text-zinc-400">✕</Text>
+      {showPinModal && (
+        <Modal visible transparent animationType="fade" onRequestClose={closePinModal}>
+          <View className=" flex-1 items-center justify-center bg-[rgba(0,0,0,0.15)]">
+            <View className="w-[92%] max-w-xl rounded-xl border border-gray-200 bg-white p-6 ">
+              {/* Header */}
+              <View className="mb-5 flex-row items-center justify-between">
+                <View className="flex-row items-center gap-3">
+                  {/* Avatar initials */}
+                  <View className="h-10 w-10 items-center justify-center rounded-full bg-red-100">
+                    <Text className="text-base font-bold text-red-700">
+                      {selectedEmployee
+                        ? `${selectedEmployee.firstName?.[0] ?? ''}${selectedEmployee.lastName?.[0] ?? ''}`.toUpperCase()
+                        : '•'}
+                    </Text>
+                  </View>
+                  <View>
+                    <Text className="text-xl font-bold text-zinc-900">
+                      {selectedEmployee
+                        ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}`
+                        : 'Enter Employee PIN'}
+                    </Text>
+                    <Text className="text-xs text-zinc-500">Secure entry • PIN requiredss</Text>
+                  </View>
+                </View>
+                <Pressable onPress={closePinModal} hitSlop={8}>
+                  <Text className="mt-[-25px] text-2xl text-zinc-400">✕</Text>
                 </Pressable>
               </View>
 
-              <TextInput
-                placeholder="Employee PIN"
-                value={tempInputValue}
-                readOnly
-                className={`mb-4 h-14 w-full rounded-xl border text-center text-xl md:h-16 md:text-2xl ${
-                  errorWarning ? 'border-rose-500 bg-rose-50' : 'border-zinc-300 bg-white'
-                }`}
-              />
-
-              {errorWarning && (
-                <Text className="mb-2 text-center text-rose-600">
-                  PIN must be at least 3 characters
-                </Text>
-              )}
-
-              <View className="items-center justify-center">
-                <Keypad onButtonClick={handleInputClick} okButton={tempInputValue.length >= 3} />
+              {/* PIN display */}
+              <View className="mb-8 items-center">
+                <PinDots value={tempInputValue} length={4} error={errorWarning} />
+                {errorWarning ? (
+                  <Text className="mt-2 text-xs text-rose-600">
+                    PIN is incorrect. Please try again.
+                  </Text>
+                ) : (
+                  <Text className="mt-2 text-xs text-zinc-500">Tap numbers to enter your PIN</Text>
+                )}
               </View>
 
-              <View className="mt-4 flex-row gap-4" />
+              {/* Keypad (now fits modal width) */}
+              <View className="items-center justify-center">
+                <Keypad
+                  onButtonClick={handleInputClick}
+                  okButton={tempInputValue.length === 4 && !pinSubmitting}
+                />
+              </View>
             </View>
           </View>
         </Modal>
-      )} */}
+      )}
     </View>
   );
 }
