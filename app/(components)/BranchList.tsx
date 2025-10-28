@@ -1,12 +1,18 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, Pressable, FlatList } from 'react-native';
+import React, { useState, useEffect, useMemo, useRef } from 'react'; // CHANGED
+import {
+  View,
+  Text,
+  Pressable,
+  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from 'react-native';
 import { informacionSucursal, obtenerInformacionSucursal } from '~/lib/services/timeclockStorage';
 import { type BranchApi } from '../../lib/services/branchService';
 
 interface Branch {
   id: string;
   name: string;
-  // Optional extras (rendered only if the API provides them)
   subtitle?: string;
   meta?: string;
   addressFull?: string;
@@ -42,6 +48,10 @@ export default function BranchSelect({
   const [branches, setBranches] = useState<Branch[]>([]);
   const [lastUsedBranchId, setLastUsedBranchId] = useState<string | null>(null);
 
+  // NEW: paging state + ref to list
+  const listRef = useRef<FlatList<Branch[]> | null>(null);
+  const [page, setPage] = useState(0);
+
   // Controlled vs internal (unchanged)
   const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
   const toggleOpen = () => {
@@ -50,7 +60,7 @@ export default function BranchSelect({
     else setInternalIsOpen(newState);
   };
 
-  // Normalize API → Branch (tolerates either sucursalId or id; pulls optional fields when present)
+  // Normalize API → Branch
   useEffect(() => {
     if (availableBranches.length > 0) {
       const mapped: Branch[] = (availableBranches as any[]).map((b) => ({
@@ -142,7 +152,6 @@ export default function BranchSelect({
   );
 
   const CARD_WIDTH = 256; // w-64
-
   const CARD_GAP = 8; // space between the two cards in a row
   const ROW_MARGIN = 8; // margin between rows (pages)
   const PAGE_WIDTH = CARD_WIDTH * 2 + CARD_GAP; // exact width of each horizontally-snapped item
@@ -196,7 +205,8 @@ export default function BranchSelect({
       </Pressable>
     );
   };
-  const rows = React.useMemo(() => {
+
+  const rows = useMemo(() => {
     const out: Branch[][] = [];
     for (let i = 0; i < branches.length; i += 2) {
       out.push(branches.slice(i, i + 2)); // [b0,b1], [b2,b3], ...
@@ -204,9 +214,76 @@ export default function BranchSelect({
     return out;
   }, [branches]);
 
+  // NEW: keep page index in range when rows change
+  useEffect(() => {
+    setPage((p) => Math.min(p, Math.max(0, rows.length - 1)));
+  }, [rows.length]);
+
+  // NEW: computed pageCount and arrow visibility
+  const pageCount = rows.length;
+  const canGoLeft = page > 0 && pageCount > 1;
+  const canGoRight = page < pageCount - 1;
+
+  // NEW: scroll helpers
+  const scrollToPage = (nextPage: number) => {
+    const clamped = Math.max(0, Math.min(nextPage, pageCount - 1));
+    listRef.current?.scrollToOffset({ offset: clamped * SNAP_INTERVAL, animated: true });
+    setPage(clamped);
+  };
+  const goLeft = () => scrollToPage(page - 1);
+  const goRight = () => scrollToPage(page + 1);
+
+  // NEW: track page from scroll (snap-aware)
+  const onMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const x = e.nativeEvent.contentOffset.x;
+    const p = Math.round(x / SNAP_INTERVAL);
+    if (p !== page) setPage(p);
+  };
+
   return (
-    <View className="shadow-inner w-full rounded-lg border border-zinc-200 bg-white">
+    <View className="shadow-inner relative w-full rounded-lg border border-zinc-200 bg-white">
+      {/* CHANGED: relative for overlay */}
+      {/* NEW: Arrow overlays */}
+      {canGoLeft && !disabled && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Scroll right"
+          hitSlop={8}
+          android_ripple={{ color: '#00000000', borderless: true }}
+          className=" items-center justify-center"
+          style={{
+            position: 'absolute',
+            left: -15,
+            top: '50%',
+            marginTop: -26,
+            height: 48,
+            width: 48,
+            zIndex: 10,
+          }}>
+          <Text className="text-6xl text-zinc-300">‹</Text>
+        </Pressable>
+      )}
+      {canGoRight && !disabled && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Scroll right"
+          hitSlop={8}
+          android_ripple={{ color: '#00000000', borderless: true }}
+          className=" items-center justify-center"
+          style={{
+            position: 'absolute',
+            right: -15,
+            top: '50%',
+            marginTop: -26,
+            height: 48,
+            width: 48,
+            zIndex: 10,
+          }}>
+          <Text className="text-6xl text-zinc-300">›</Text>
+        </Pressable>
+      )}
       <FlatList
+        ref={listRef} // NEW
         data={rows}
         keyExtractor={(_, idx) => `row-${idx}`}
         horizontal
@@ -215,6 +292,7 @@ export default function BranchSelect({
         snapToAlignment="start"
         snapToInterval={SNAP_INTERVAL} // snap one “pair” at a time
         contentContainerStyle={{ paddingHorizontal: 8, paddingVertical: 8 }}
+        onMomentumScrollEnd={onMomentumScrollEnd} // NEW
         renderItem={({ item: pair }) => (
           <View
             style={{

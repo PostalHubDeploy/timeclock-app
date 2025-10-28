@@ -1,5 +1,13 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, FlatList, Keyboard } from 'react-native';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'; // CHANGED
+import {
+  View,
+  Text,
+  Pressable,
+  FlatList,
+  Keyboard,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from 'react-native'; // CHANGED
 import { informacionEmpleado } from '~/lib/services/timeclockStorage';
 import { EmployeeApi } from '~/lib/services/branchService';
 import { useWindowDimensions } from 'react-native';
@@ -49,9 +57,10 @@ export default function EmployeeSelect({
 
   // responsive sizing (aim for 3 cols)
   const horizontalPadding = 6;
-  const availableW = Math.max(width - horizontalPadding * 2, 320);
-  const cardW = Math.min(150, Math.max(160, Math.floor((availableW - GAP * (COLS - 1)) / COLS)));
-  const cardH = 175; // keep height same (no UI change)
+  const availableW = 150;
+  const computed = Math.floor((availableW - GAP * (COLS - 1)) / COLS);
+  const cardW = Math.min(160, Math.max(150, computed)); // FIX
+  const cardH = 175;
   const pageWidth = COLS * cardW + (COLS - 1) * GAP;
   const pageMargin = 8;
   const snapToInterval = pageWidth + pageMargin * 2;
@@ -59,7 +68,11 @@ export default function EmployeeSelect({
   const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
   const setOpenState = (s: boolean) => (onToggle ? onToggle(s) : setInternalIsOpen(s));
 
-  // Map API -> card data (surface more fields; visuals unchanged)
+  // NEW: list ref + page index
+  const listRef = useRef<FlatList<CardEmployee[]> | null>(null);
+  const [page, setPage] = useState(0);
+
+  // Map API -> card data
   const employeesForCards: CardEmployee[] = useMemo(
     () =>
       (availableEmployees ?? []).map((emp: any) => {
@@ -75,10 +88,9 @@ export default function EmployeeSelect({
           firstName: first,
           lastName: last,
           employeeId: id,
-          email: emp?.email ?? undefined, // ⬅️ undefined, not null
-          position: roleLike ?? undefined, // ⬅️ undefined, not null
+          email: emp?.email ?? undefined,
           role: roleLike ?? undefined,
-          phone: emp?.phone ?? emp?.mobile ?? undefined, // ⬅️ undefined
+          phone: emp?.phone ?? emp?.mobile ?? undefined,
           branchId: emp?.branchId ?? emp?.sucursalId ?? undefined,
           branchName: emp?.branchName ?? emp?.branch ?? emp?.sucursalName ?? undefined,
           active:
@@ -101,33 +113,57 @@ export default function EmployeeSelect({
     return out;
   }, [employeesForCards]);
 
+  // NEW: keep page index in range when pages change
+  useEffect(() => {
+    setPage((p) => Math.min(p, Math.max(0, pages.length - 1)));
+  }, [pages.length]);
+
+  // NEW: derived arrows
+  const pageCount = pages.length;
+  const canGoLeft = page > 0 && pageCount > 1;
+  const canGoRight = page < pageCount - 1;
+
+  // NEW: paging helpers
+  const scrollToPage = (next: number) => {
+    const clamped = Math.max(0, Math.min(next, pageCount - 1));
+    listRef.current?.scrollToOffset({ offset: clamped * snapToInterval, animated: true });
+    setPage(clamped);
+  };
+  const goLeft = () => scrollToPage(page - 1);
+  const goRight = () => scrollToPage(page + 1);
+
+  // NEW: sync page from snap end
+  const onMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const x = e.nativeEvent.contentOffset.x;
+    const p = Math.round(x / snapToInterval);
+    if (p !== page) setPage(p);
+  };
+
   const handleSelectEmployee = (employee: CardEmployee) => {
     const payloadForParent: UserEmployee = {
       id: employee.id,
       firstName: employee.firstName,
       lastName: employee.lastName,
       employeeId: employee.employeeId,
-      email: employee.email ?? undefined, // ⬅️ ensure undefined
-      role: employee.role ?? employee.role ?? undefined,
+      email: employee.email ?? undefined,
+      role: employee.role ?? undefined,
       phone: employee.phone ?? undefined,
       branchId: employee.branchId ?? undefined,
       branchName: employee.branchName ?? undefined,
       active: typeof employee.active === 'boolean' ? employee.active : undefined,
     };
 
-    // Storage expects its own UserEmployee shape (no nulls). Keep only fields it knows:
     const payloadForStorage = {
       id: payloadForParent.id,
       firstName: payloadForParent.firstName,
       lastName: payloadForParent.lastName,
       employeeId: payloadForParent.employeeId,
-      email: payloadForParent.email, // string | undefined
-      role: payloadForParent.role, // string | undefined
+      email: payloadForParent.email,
+      role: payloadForParent.role,
     };
 
     onSelectedEmployee(payloadForParent);
-    informacionEmpleado(payloadForStorage); // ✅ no nulls now
-
+    informacionEmpleado(payloadForStorage);
     setOpenState(false);
     Keyboard.dismiss();
   };
@@ -169,14 +205,12 @@ export default function EmployeeSelect({
         `}
           style={{ width: cardW, height: cardH, justifyContent: 'space-between' }}
           accessibilityState={{ selected }}>
-          {/* Selected pill overlay (top-right) */}
           {selected && (
             <View className="absolute right-2 top-2" pointerEvents="none">
               <SelectedChip />
             </View>
           )}
 
-          {/* Top: Initials */}
           <View className="items-center">
             <View
               className="h-12 w-12 items-center justify-center rounded-full"
@@ -185,7 +219,6 @@ export default function EmployeeSelect({
             </View>
           </View>
 
-          {/* Middle: Name + Role (unchanged visuals) */}
           <View className="items-center">
             <Text numberOfLines={1} className="text-base font-semibold text-zinc-900">
               {item.firstName} {item.lastName}
@@ -195,7 +228,6 @@ export default function EmployeeSelect({
             </Text>
           </View>
 
-          {/* Bottom: Email (unchanged visuals) */}
           <View>
             {item.email ? (
               <Text numberOfLines={1} className="text-xs text-zinc-500">
@@ -210,8 +242,49 @@ export default function EmployeeSelect({
   );
 
   return (
-    <View className="shadow-inner w-full rounded-lg border border-zinc-200 bg-white">
+    <View className="shadow-inner relative w-full rounded-lg border border-zinc-200 bg-white">
+      {/* CHANGED: relative for overlays */}
+      {/* NEW: Left/Right arrow overlays */}
+      {canGoLeft && !disabled && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Scroll right"
+          hitSlop={8}
+          android_ripple={{ color: '#00000000', borderless: true }}
+          className=" items-center justify-center"
+          style={{
+            position: 'absolute',
+            left: -15,
+            top: '50%',
+            marginTop: -28,
+            height: 48,
+            width: 48,
+            zIndex: 10,
+          }}>
+          <Text className="text-6xl text-zinc-300">‹</Text>
+        </Pressable>
+      )}
+      {canGoRight && !disabled && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Scroll right"
+          hitSlop={8}
+          android_ripple={{ color: '#00000000', borderless: true }}
+          className=" items-center justify-center"
+          style={{
+            position: 'absolute',
+            right: -15,
+            top: '50%',
+            marginTop: -28,
+            height: 48,
+            width: 48,
+            zIndex: 10,
+          }}>
+          <Text className="text-6xl text-zinc-300">›</Text>
+        </Pressable>
+      )}
       <FlatList
+        ref={listRef} // NEW
         data={pages}
         keyExtractor={(_, idx) => `page-${idx}`}
         horizontal
@@ -220,13 +293,14 @@ export default function EmployeeSelect({
         snapToAlignment="start"
         snapToInterval={snapToInterval}
         contentContainerStyle={{ paddingHorizontal: horizontalPadding, paddingVertical: 8 }}
+        onMomentumScrollEnd={onMomentumScrollEnd} // NEW
         renderItem={({ item: page }) => {
           const fillers = PAGE_SIZE - page.length;
           return (
             <View
               style={{
                 width: pageWidth,
-                marginHorizontal: pageMargin, // keep your spacing
+                marginHorizontal: pageMargin,
                 flexDirection: 'row',
                 flexWrap: 'wrap',
                 gap: GAP,
@@ -234,7 +308,6 @@ export default function EmployeeSelect({
               {page.map((emp) => (
                 <EmployeeCard key={emp.id} item={emp} />
               ))}
-              {/* keep grid shape on last page */}
               {fillers > 0 &&
                 Array.from({ length: fillers }).map((_, i) => (
                   <View key={`filler-${i}`} style={{ width: cardW, height: cardH, opacity: 0 }} />

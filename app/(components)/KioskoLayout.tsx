@@ -73,7 +73,7 @@ export function PinDots({
             key={i}
             className={`h-16 w-16 items-center justify-center rounded-xl border
               ${error ? 'border-rose-500 bg-rose-50' : 'border-zinc-300 bg-white'}`}>
-            <Text className="text-7xl text-gray-700">{filled ? '•' : ' '}</Text>
+            <Text className="text-7xl text-gray-800">{filled ? '•' : ' '}</Text>
           </View>
         );
       })}
@@ -513,7 +513,7 @@ export default function KioskoLayout() {
               </View>
 
               {/* Keypad (now fits modal width) */}
-              <View className="items-center justify-center">
+              <View className="items-center justify-center py-2">
                 <Keypad
                   onButtonClick={handleInputClick}
                   okButton={tempInputValue.length === 4 && !pinSubmitting}

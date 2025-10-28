@@ -13,10 +13,10 @@ const GAP = 24;
 const COLS = 3;
 
 const COLORS = {
-  digitFill: '#e5e7eb', // gray-200
-  deleteFill: '#64748b', // slate-500
+  digitFill: '#F3F4F6', // gray-200
+  deleteFill: '#101828', // slate-500
   okFill: '#dc2626', // brand red
-  text: '#0b0f19', // near black
+  text: '#101828', // near black
   ripple: 'rgba(255,255,255,0.25)',
 };
 
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
     // Soft shadow even with SVG fill
-    shadowColor: '#000',
+    shadowColor: '#101828',
     shadowOpacity: 0.08,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
